@@ -1,0 +1,163 @@
+## multi agent system - Medical Diagnosis Advisor
+
+### step 1 - install packages
+!pip install -q google-generativeai
+
+### step 2 - import libraires
+import os
+from datetime import datetime
+import google.generativeai as genai
+from google.colab import userdata
+
+### Step 3 - access api key
+genai.configure(api_key=userdata.get('GOOGLE_API_KEY'))
+
+### Step 4 - Load Gemini Model
+model = genai.GenerativeModel("gemini-2.5-flash", generation_config={"temperature":0.3})
+
+### Agent 1 : Symptom Analysis Agent
+def symptom_analysis_agent(symptoms):
+
+    print("\n========== Symptom Analysis Agent ==========\n")
+
+    prompt = f"""
+    You are a medical symptom analyzer.
+    Analyze the following symptoms.
+    Symptoms:{symptoms}
+    
+    Tasks:
+    1. Summarize the symptoms.
+    2. Mention possible affected body systems.
+    3. Mention severity as Low, Medium or High.
+
+    Keep answer within 5 bullet points.
+    This is only for educational purposes.
+    """
+    response = model.generate_content(prompt)
+    print(response.text)
+    return response.text
+
+### Agent 2 : Possible Disease Prediction Agent
+def disease_prediction_agent(symptom_summary):
+
+    print("\n========== Disease Prediction Agent ==========\n")
+
+    prompt = f"""
+    You are a medical diagnosis assistant.
+    Based on the symptom summary below, list the Top 3 possible medical conditions.
+    Symptom Summary:{symptom_summary}
+    Return output as
+    Disease Name
+    Reason
+    Confidence (Low/Medium/High)
+    Mention that this is NOT a confirmed diagnosis.
+    """
+    response = model.generate_content(prompt)
+    print(response.text)
+    return response.text
+
+### Agent 3 : Medication & Home Care Agent
+def medication_agent(disease_summary):
+
+    print("\n========== Medication Recommendation Agent ==========\n")
+
+    prompt = f"""
+    You are a healthcare assistant.
+    Based on the following possible conditions,
+    {disease_summary}
+    Suggest:
+    • General home care tips
+    • OTC medicines (if commonly appropriate)
+    • Hydration/Food recommendations
+    • Lifestyle advice
+    Do NOT prescribe prescription medicines.
+    Mention consulting a doctor.
+    """
+    response = model.generate_content(prompt)
+    print(response.text)
+    return response.text
+
+### Agent 4 : Follow-up Question Agent
+def followup_agent(summary):
+
+    print("\n========== Follow-up Question Agent ==========\n")
+
+    prompt = f"""
+    You are a doctor.
+    Based on the information below
+    {summary}
+    Ask the patient 5 follow-up questions that would help understand the condition better.
+    Return only bullet points.
+    """
+    response = model.generate_content(prompt)
+    print(response.text)
+    return response.text
+
+### Agent 5 : Emergency Detection Agent
+def emergency_agent(symptoms):
+
+    print("\n========== Emergency Detection Agent ==========\n")
+
+    prompt = f"""
+    You are an emergency medical assistant.
+    Symptoms:{symptoms}
+    Determine whether this situation may require
+    • Immediate Emergency Care
+    • Visit Doctor Soon
+    • Home Monitoring
+    Explain in 2-3 lines.
+    Mention this is only educational guidance.
+    """
+    response = model.generate_content(prompt)
+    print(response.text)
+    return response.text
+
+### Agent 6 : Logger Agent
+def logger_agent(name,
+                 patient_id,
+                 symptoms,
+                 symptom_summary,
+                 diseases,
+                 medication,
+                 followups,
+                 emergency):
+    print("\n========== Logger Agent ==========\n")
+    log = f"""
+----------------------------------------------------
+Time : {datetime.now()}
+Patient Name : {name}
+Patient ID : {patient_id}
+Symptoms :{symptoms}
+----------------------------------------------------
+Symptom Analysis:{symptom_summary}
+----------------------------------------------------
+Possible Diseases:{diseases}
+----------------------------------------------------
+Medication:{medication}
+----------------------------------------------------
+Follow-up Questions:{followups}
+----------------------------------------------------
+Emergency Advice:{emergency}
+----------------------------------------------------
+"""
+    with open("medical_assistant_log.txt","a") as f:
+        f.write(log)
+    print("Conversation Saved Successfully.")
+
+
+### User Input
+
+name = input("Enter Patient Name : ")
+patient_id = input("Enter Patient ID : ")
+symptoms = input("Describe your symptoms : ")
+
+summary=symptom_analysis_agent(symptoms)
+disease=disease_prediction_agent(summary)
+medicine=medication_agent(disease)
+followups=followup_agent(summary)
+emergency=emergency_agent(symptoms)
+
+logger_agent(name,patient_id,symptoms,summary,disease,medicine,followups,emergency)
+
+print("\nMedical Diagnosis Assistant Completed.")
+
